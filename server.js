@@ -1,122 +1,62 @@
 
 let express = require('express');
+let mongoose = require('mongoose');
 // console.log(express);
 let app = express();
-app.use(express.json());
-let Joi = require("joi");
-//CRUD --> C- Create, r-read, u-update, d-delete
-//create --POST() --read ---get() ---- update --- put() ---- delete --- delete()
-
- let courses = [{
-     id:1,
-     name:"angular",
- },
- {
-     id:2,
-     name:"reactjs"
- },
- {
-     id:3,
-     name:"vue.js"
- },
- {
-     id:4,
-     name:"typescript"
- },
- {
-     id:5,
-     name:"javascript"
- }
-];
+let helmet = require('helmet');
+let morgan = require('morgan');
+let Fawn = require('fawn');
+app.use(express.json()); 
+app.use(express.static('public'));
+app.use(helmet());
 
 
-// PATH ---> callback function
-// app.get("/user", (req,res) => {
-//   res.send("hello user!!!!!");
-// });
+let middlewareWork = require('./middleware/middleware');
+let config = require('config');
+let port = process.env.PORT || 4200;
+ 
+//  console.log(process);
 
-// app.get("/courses", (req,res) => {
-//     res.send(JSON.stringify(['angular','javascript','typescript']));
-// });
+let courses = require('./routes/courses');
+let genre = require('./routes/genre');
+let movie = require('./routes/movie');
+let customer = require('./routes/customer');
+let userRegister = require('./routes/userRegister');
+let auth = require('./routes/auth/user');
+const fawn = require('fawn');
 
-
-// app.get("/course/:year/:month", (req,res) => {
-//     res.send(req.params);
-// })
-
-
-app.get("/courses", (req,res) => {
-    res.send(courses);
-});
-
-app.get("/course/:id", (req,res) => {
- // if id not match then return a bad request   
- let course = courses.find((data) => data.id === parseInt(req.params.id));
- if(!course){return res.status(403).send({message:"invalid course id"})};
-//if id get's match send course obj
-res.send(course);
-});
-
-//create a courses
-
-app.post("/createcourse", (req,res) => {
-
-  let result =  ValidationError(req.body)   // req.body.name
-//    console.log(result);
-if(result.error){return res.status(400).send(result.error.details[0].message)}
-
-  let course = {
-    id: courses.length + 1,
-    name: req.body.name
-  };
-
-   courses.push(course);
-   res.send(courses);
-
-} );
-
-
-app.put("/updatecourse/:id", (req,res) => {
-//check the id first 
-let course =  courses.find((data) => data.id === parseInt(req.params.id));
-if(!course) {return res.status(403).send({message:"Invalid course id"})};
-// Joi validation
-  let result = ValidationError(req.body);
- if(result.error){return res.status(400).send(result.error.details[0].message)};
-//update the property
- course.name = req.body.name;
-courses.push(course);
-// response the data
-res.send(courses);
-});
-
-app.delete("/removecourse/:id",(req,res) => {
-//check the id first 
-let course =  courses.find((data) => data.id === parseInt(req.params.id));
-if(!course) {return res.status(403).send({message:"Invalid course id"})};
-//{id:1,name:"angular"}
-let index = courses.indexOf(course)  
-courses.splice(index,1);
-res.send(courses);
-
-});
-
-
-function ValidationError(error){
-    let schema = Joi.object({
-        name: Joi.string().min(3).max(12).required(),
-    });
-    
-    return schema.validate(error);
+console.log(`mode: ${process.env.NODE_ENV}`);
+console.log(`default mode: ${app.get('env')}`);
+if(app.get('env') === "development"){
+    app.use(morgan('tiny'));
+}
+if(!config.get('APP_KEY')){
+    console.error('SERVER FATAL ERROR!!! APP_KEY is not defined');
+    process.exit(1);
 }
 
-app.listen(4200,() => console.log(`conneted to port 4200`));
+app.use(morgan('tiny'));
+console.log(`default config: ${config.get('name')}`);
+console.log(`mode_Email: ${config.get('email')}`);
+// console.log(`password: ${config.get("password")}`)
+
+ app.use('/api', courses);
+ app.use('/api', genre);
+ app.use('/api', movie);
+ app.use('/api', customer);
+ app.use('/api', userRegister);
+ app.use('/api', auth);
+
+//connection
+mongoose.
+connect('mongodb://localhost:27017/weekdays_db',{ useNewUrlParser: true,useUnifiedTopology: true })
+.then(() => console.log(`connected to db`))
+.catch((error) => console.log(`something went wrong, ${error.message}`))
+
+fawn.init(mongoose);
+//express connection
+app.listen(port,() => console.log(`conneted to port ${port}`));
 
 
-//create a api for music app
-//name,singer,releaseDate,price, actors
-//get all songs data --- get()
-// get data by id ----- get()
-// create song===== post()
-//update song by id --- put()
-//remove song by id ==== remove()
+
+
