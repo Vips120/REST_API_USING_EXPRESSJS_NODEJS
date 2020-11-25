@@ -1,15 +1,17 @@
 let mongoose = require('mongoose');
 let config = require('config');
+let Joi = require('Joi');
 let jwt = require('jsonwebtoken');
 let schema = mongoose.Schema({
     firstname:{type: String, min:3, max:100, required:true},
     lastname:{type: String,min:3,max:100,required:true},
-    address:{},
     UserLogin:{
         emailId:{type: String, required:true, unique:true},
         password:{type: String, required:true}
     },
-    isAdmin:{type: Boolean}
+    isAdmin:{type: Boolean},
+    resetpasswordtoken:{type: String},
+    resetpasswordexpires:{type: Date}
 });
 schema.methods.genrateAuthToken = function(){
     return jwt.sign({_id: this._id, isAdmin:this.isAdmin},config.get("APP_KEY"));
